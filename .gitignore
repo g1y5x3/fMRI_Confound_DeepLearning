@@ -4,3 +4,4 @@ preprocessing_batch.mat
 
 .ipynb_checkpoints
 *.csv
+__pycache__
