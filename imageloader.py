@@ -8,8 +8,7 @@ from utils import num2vect
 
 class IXIDataset(Dataset):
   def __init__(self, data_dir, label_file, bin_range=None):
-    print("\nData Loader")
-    print(f"Load the label file: {label_file}")
+    print(f"Loading file: {label_file}")
     self.directory = data_dir
     self.info = pd.read_csv(data_dir+"/"+label_file)
     if not bin_range:
@@ -22,9 +21,8 @@ class IXIDataset(Dataset):
 
     age = np.array([71.3])
     y, bc = num2vect(age, self.bin_range, 1, 1)
-    self.bin_center = bc
+    self.bin_center = torch.tensor(bc, dtype=torch.float32)
     y = torch.tensor(y, dtype=torch.float32)
-    print(f"Label Shape: {y.shape}")
 
   def __len__(self):
     return len(self.info)
