@@ -5,22 +5,26 @@ from scipy.stats import norm
 
 # original label file contains additional entries from subjects not appeared in the fMRI images
 def preprocess_split(data_dir, label_file):
-  info = pd.read_csv(data_dir+"/"+label_file)
+  info = pd.read_excel(data_dir+"/"+label_file)
   df = pd.DataFrame(columns=info.columns)
   dir_list = os.listdir(data_dir)
   for i in dir_list:
     if "nii" in i:
-      df_tmp = info[info["IXI_ID"]==int(i[7:10])].copy()  # just not have to deal with the warning
-      df_tmp["FILENAME"] = i
-      if "HH" in i:
-        df_tmp["SITE"] = "HH"
-      if "Guys" in i:
-        df_tmp["SITE"] = "Guys"
-      if "IOP" in i:
-        df_tmp["SITE"] = "IOP"
-      df = pd.concat([df, df_tmp], ignore_index=True)
+      df_tmp = info[info["IXI_ID"]==int(i[7:10])].copy()
+      if not df_tmp.empty and not np.isnan(df_tmp["AGE"]).any():
+        # for some reason there's duplicate from the original csv
+        df_tmp = df_tmp.drop_duplicates(subset=["IXI_ID"])
+        df_tmp["FILENAME"] = i
+        if "HH" in i:
+          df_tmp["SITE"] = "HH"
+        if "Guys" in i:
+          df_tmp["SITE"] = "Guys"
+        if "IOP" in i:
+          df_tmp["SITE"] = "IOP"
+        df = pd.concat([df, df_tmp], ignore_index=True)
   df = df.sort_values(by="IXI_ID", ascending=True)
   df = df.reset_index(drop=True)
+  df["AGE"] = df["AGE"].round(2)
 
   # split into training and validation
   df_Guys = df[df["SITE"]=="Guys"]
@@ -35,8 +39,8 @@ def preprocess_split(data_dir, label_file):
     df_train = pd.concat([df_train, train_df], ignore_index=True)
     df_test  = pd.concat([df_test, test_df], ignore_index=True)
 
-  df_train.to_csv("IXI_train.csv", index=False)
-  df_test.to_csv("IXI_test.csv", index=False)
+  df_train.to_csv(data_dir + "/IXI_train.csv", index=False)
+  df_test.to_csv(data_dir + "/IXI_test.csv", index=False)
 
 def num2vect(x, bin_range, bin_step, sigma):
     """
@@ -82,5 +86,5 @@ def num2vect(x, bin_range, bin_step, sigma):
         return v, bin_centers
 
 if __name__ == "__main__":
-  preprocess_split(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset/preprocessed", label_file="IXI.csv")
+  preprocess_split(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset/preprocessed", label_file="IXI.xls")
 
