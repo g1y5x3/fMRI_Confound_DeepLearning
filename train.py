@@ -1,3 +1,4 @@
+import wandb
 import torch
 import torch.optim as optim
 from torch import nn, optim
@@ -13,7 +14,20 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 bin_range   = [21,85] 
 batch_size  = 8
 num_workers = 6
-num_epochs  = 1
+num_epochs  = 130
+lr = 1e-2
+wd = 1e-3
+
+wandb.login()
+run = wandb.init(
+  project="Confounding in fMRI Deep Learning",
+  config={
+    "num_workers":   num_workers,
+    "num_epochs":    num_epochs,
+    "learning_rate": lr,
+    "weight_decay":  wd,
+  },
+)
 
 data_train = IXIDataset(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset/preprocessed", label_file="IXI_train.csv", bin_range=bin_range)
 data_test  = IXIDataset(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset/preprocessed", label_file="IXI_test.csv",  bin_range=bin_range)
@@ -44,21 +58,12 @@ model.to(device)
 # https://pytorch.org/docs/stable/generated/torch.nn.KLDivLoss.html
 criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
 
-optimizer = optim.SGD(model.parameters(), lr=1e-7, weight_decay=0.001)
+optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=wd)
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.3)
 
 print("\nTraining:")
-# Debug the training loop
-# epoch_loss = 0.0
-# optimizer.zero_grad()
-# x, y = x.to(device), y.to(device)
-# output = model(x)
-# print(output)
-# print(y)
-# loss = criterion(output.log(), y.log())
-# print(loss)
-
 for epoch in tqdm(range(num_epochs)):
+  epoch_loss = 0.0
   for images, labels in dataloader_train:
     x, y = images.to(device), labels.to(device)
     optimizer.zero_grad()
@@ -66,10 +71,6 @@ for epoch in tqdm(range(num_epochs)):
     loss = criterion(output.log(), y.log())
     loss.backward()
     optimizer.step()
-    print(loss)
-    if torch.isnan(loss):
-      print(output)
-      print(y)
-      break
-
-#   print(f"[{epoch}] loss: {epoch_loss}")
+    epoch_loss += loss.item()
+  print(f"epoch={epoch}, loss={epoch_loss}")
+  wandb.log({"loss": epoch_loss})

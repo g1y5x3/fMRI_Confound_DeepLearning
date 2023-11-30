@@ -1,6 +1,8 @@
 MoAEpilot
 spm12
 preprocessing_batch.mat
+wandb
+data
 
 .ipynb_checkpoints
 *.csv
