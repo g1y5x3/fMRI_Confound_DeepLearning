@@ -1,18 +1,5 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-def my_KLDivLoss(x, y):
-  """Returns K-L Divergence loss
-  Different from the default PyTorch nn.KLDivLoss in that
-  a) the result is averaged by the 0th dimension (Batch size)
-  b) the y distribution is added with a small value (1e-16) to prevent log(0) problem
-  """
-  loss_func = nn.KLDivLoss(reduction='sum')
-  y += 1e-16
-  n = y.shape[0]
-  loss = loss_func(x, y) / n
-  return loss
 
 class SFCN(nn.Module):
   def __init__(self, channel_number=[32, 64, 128, 256, 256, 64], output_dim=40, dropout=True):
