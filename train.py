@@ -55,27 +55,26 @@ print(f"Total data: {len(data_train)}")
 print(f"Input {x.shape}")
 print(f"Label {y.shape}")
 
-# x, y = next(iter(dataloader_test))
-# print("\nTesting data summary:")
-# print(f"Total data: {len(data_test)}")
-# print(f"Input {x.shape}")
-# print(f"Label {y.shape}")
+x, y = next(iter(dataloader_test))
+print("\nTesting data summary:")
+print(f"Total data: {len(data_test)}")
+print(f"Input {x.shape}")
+print(f"Label {y.shape}")
 
 model = SFCN(output_dim=y.shape[1])
 print(f"\nModel Dtype: {next(model.parameters()).dtype}")
 summary(model, x.shape)
+# TODO load pretrained weights from https://github.com/ha-ha-ha-han/UKBiobank_deep_pretrain/raw/master/brain_age/run_20190719_00_epoch_best_mae.p
 model.to(device)
 
 criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
-
-
 optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=wd)
 # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.3)
 
 t = trange(num_epochs, desc="\nTraining", leave=True)
 for epoch in t:
-  epoch_loss_kl = 0.0
-  epoch_MAE_age = 0.0
+  loss_kl_train = 0.0
+  MAE_age_train = 0.0
   for images, labels in dataloader_train:
     optimizer.zero_grad()
     x, y = images.to(device), labels.to(device)
@@ -87,11 +86,36 @@ for epoch in t:
     with torch.no_grad():
       age_target = labels @ bin_center
       age_pred   = output.cpu() @ bin_center
+      MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
 
-      epoch_MAE_age += F.l1_loss(age_pred, age_target, reduction="sum")
-      epoch_loss_kl += loss.item()
+    loss_kl_train += loss.item()
+    MAE_age_train += MAE_age.item()
 
-  t.set_description(f"Training: train/loss_kl {epoch_loss_kl:.2f}, train/MAE_age {epoch_MAE_age/len(data_train):.2f}")
+  loss_kl_train = loss_kl_train / len(dataloader_train)
+  MAE_age_train = MAE_age_train / len(dataloader_train)
+
+  with torch.no_grad():
+    loss_kl_test = 0.0
+    MAE_age_test = 0.0
+    for images, labels in dataloader_test:
+      x, y = images.to(device), labels.to(device)
+      output = model(images.to(device))
+      loss = criterion(output.log(), y.log())
+
+      age_target = labels @ bin_center
+      age_pred = output.cpu() @ bin_center
+      MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
+
+      loss_kl_test += loss.item()
+      MAE_age_test += MAE_age.item()
+
+  loss_kl_test = loss_kl_test / len(dataloader_test)
+  MAE_age_test = MAE_age_test / len(dataloader_test)
+
+  t.set_description(f"Training: train/loss_kl {loss_kl_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss_kl {loss_kl_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
   if WANDB:
-    wandb.log({"train/loss_kl": epoch_loss_kl,
-               "train/MAE_age": epoch_MAE_age/len(data_train)})
+    wandb.log({"train/loss_kl": loss_kl_train,
+               "train/MAE_age": MAE_age_train,
+               "test/loss_kl": loss_kl_test,
+               "test/MAE_age": MAE_age_test,
+               })
