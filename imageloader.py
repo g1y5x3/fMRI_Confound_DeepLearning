@@ -4,14 +4,16 @@ import numpy as np
 import pandas as pd
 import nibabel as nib
 import torch
+from pathlib import Path
 from torch.utils.data import Dataset
-from utils import preprocess_split, num2vect
+from utils import num2vect
 
 class IXIDataset(Dataset):
   def __init__(self, data_dir, label_file, bin_range=None):
     print("\nData Loader")
     print(f"Load the label file: {label_file}")
-    self.info = pd.read_csv(label_file)
+    data_dir = Path(data_dir)
+    self.info = pd.read_csv(data_dir/label_file)
     self.directory = data_dir
     if not bin_range:
       self.bin_range = [math.floor(self.info['AGE'].min()), math.ceil(self.info['AGE'].max())]
@@ -31,12 +33,16 @@ class IXIDataset(Dataset):
     return len(self.info)
 
   def __getitem__(self, idx):
+    # fetch the image
     filepath = os.path.join(self.directory, self.info["FILENAME"][idx])
     nii_image = nib.load(filepath)
-    # tensor_image = torch.from_numpy(nii_image.get_fdata()).type(torch.FloatTensor)
     tensor_image = torch.unsqueeze(torch.tensor(nii_image.get_fdata(), dtype=torch.float32),0)
+
+    # convert age labels from a single value to a distribution and 
+    # add with a small value (1e-16) to prevent log(0) problem
     age = self.info["AGE"][idx]
     y, _ = num2vect(age, self.bin_range, 1, 1)
+    y += 1e-16
     tensor_label = torch.tensor(y, dtype=torch.float32)
 
     return tensor_image, tensor_label
