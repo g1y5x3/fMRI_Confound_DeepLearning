@@ -24,6 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # TODO: Test with other range that does not produce a x64 output
 bin_range   = [21,85]
+
 batch_size  = args.bs
 num_workers = args.nw
 num_epochs  = args.epoch
@@ -82,7 +83,6 @@ for epoch in t:
     loss = criterion(output.log(), y.log())
     loss.backward()
     optimizer.step()
-    scheduler.step()
 
     with torch.no_grad():
       age_target = labels @ bin_center
@@ -113,6 +113,8 @@ for epoch in t:
   loss_kl_test = loss_kl_test / len(dataloader_test)
   MAE_age_test = MAE_age_test / len(dataloader_test)
 
+  scheduler.step()
+
   t.set_description(f"Training: train/loss_kl {loss_kl_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss_kl {loss_kl_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
   if WANDB:
     wandb.log({"train/loss_kl": loss_kl_train,
@@ -125,6 +127,6 @@ torch.save(model.state_dict(), "model/model.pth")
 
 if WANDB:
   artifact = wandb.Artifact("model", type="model")
-  artifact.add_file(artifact)
+  artifact.add_file("model/model.pth")
   run.log_artifact(artifact)
   run.finish()
