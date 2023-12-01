@@ -46,8 +46,8 @@ if WANDB:
 print("\nDataloader:")
 data_train = IXIDataset(data_dir="data", label_file="IXI_train.csv", bin_range=bin_range)
 data_test  = IXIDataset(data_dir="data", label_file="IXI_test.csv",  bin_range=bin_range)
-dataloader_train = DataLoader(data_train, batch_size=batch_size, num_workers=num_workers, shuffle=True)
-dataloader_test  = DataLoader(data_test,  batch_size=batch_size, num_workers=num_workers, shuffle=False)
+dataloader_train = DataLoader(data_train, batch_size=batch_size, num_workers=num_workers, pin_memory=True, shuffle=True)
+dataloader_test  = DataLoader(data_test,  batch_size=batch_size, num_workers=num_workers, pin_memory=True, shuffle=False)
 bin_center = data_train.bin_center.reshape([-1,1])
 
 x, y = next(iter(dataloader_train))
