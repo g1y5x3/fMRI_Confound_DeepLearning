@@ -69,7 +69,7 @@ model.to(device)
 
 criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
 optimizer = optim.SGD(model.parameters(), lr=lr, weight_decay=wd)
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.3)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.3)
 
 t = trange(num_epochs, desc="\nTraining", leave=True)
 for epoch in t:
@@ -82,6 +82,7 @@ for epoch in t:
     loss = criterion(output.log(), y.log())
     loss.backward()
     optimizer.step()
+    scheduler.step()
 
     with torch.no_grad():
       age_target = labels @ bin_center
@@ -119,3 +120,11 @@ for epoch in t:
                "test/loss_kl": loss_kl_test,
                "test/MAE_age": MAE_age_test,
                })
+
+torch.save(model.state_dict(), "model/model.pth")
+
+if WANDB:
+  artifact = wandb.Artifact("model", type="model")
+  artifact.add_file(artifact)
+  run.log_artifact(artifact)
+  run.finish()

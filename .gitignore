@@ -3,6 +3,7 @@ spm12
 preprocessing_batch.mat
 wandb
 data
+model
 
 .ipynb_checkpoints
 *.csv
