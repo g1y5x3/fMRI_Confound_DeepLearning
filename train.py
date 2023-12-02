@@ -99,8 +99,8 @@ for epoch in t:
       age_pred   = output @ bin_center
       MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
 
-    loss_kl_train += loss.item()
-    MAE_age_train += MAE_age.item()
+      loss_kl_train += loss.item()
+      MAE_age_train += MAE_age.item()
 
   loss_kl_train = loss_kl_train / len(dataloader_train)
   MAE_age_train = MAE_age_train / len(dataloader_train)
@@ -129,8 +129,8 @@ for epoch in t:
   if WANDB:
     wandb.log({"train/loss_kl": loss_kl_train,
                "train/MAE_age": MAE_age_train,
-               "test/loss_kl": loss_kl_test,
-               "test/MAE_age": MAE_age_test,
+               "test/loss_kl":  loss_kl_test,
+               "test/MAE_age":  MAE_age_test,
                })
 
 torch.save(model.state_dict(), "model/model.pth")
@@ -139,4 +139,3 @@ if WANDB:
   artifact.add_file("model/model.pth")
   run.log_artifact(artifact)
   run.finish()
-
