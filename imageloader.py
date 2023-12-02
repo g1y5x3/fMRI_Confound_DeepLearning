@@ -20,38 +20,34 @@ class IXIDataset(Dataset):
       self.bin_range  = bin_range
       print(f"Provided Bin Range: {self.bin_range}")
 
+    # Pre-load the images and labels (if RAM is allowing)
+    nii = nib.load(self.directory+"/"+self.info["FILENAME"][0])
+    image = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
+    self.image_all = torch.empty((len(self.info),) + tuple(image.shape), dtype=torch.float32)
+
     age = np.array([71.3])
-    _, bc = num2vect(age, self.bin_range, 1, 1)
+    y, bc = num2vect(age, self.bin_range, 1, 1)
+    label = torch.tensor(y, dtype=torch.float32)
+    self.label_all = torch.empty((len(self.info),) + tuple(label.shape)[1:], dtype=torch.float32)
+
+    for i in tqdm(range(len(self.info)), desc="Loading Data"):
+      nii = nib.load(self.directory+"/"+self.info["FILENAME"][i])
+      self.image_all[i,:] = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
+
+      age = self.info["AGE"][i]
+      y, _ = num2vect(age, self.bin_range, 1, 1)
+      y += 1e-16
+      self.label_all[i,:] = torch.tensor(y, dtype=torch.float32)
+
     self.bin_center = torch.tensor(bc, dtype=torch.float32)
-    
-    print(len(self.info))
-    # Pre-load the images and labels (if RAM is allowed)
-    nii_image = nib.load(self.directory+"/"+self.info["FILENAME"][0])
-    tensor_image = torch.unsqueeze(torch.tensor(nii_image.get_fdata(), dtype=torch.float32),0)
-    print(tuple(tensor_image.shape))
-    data_image = torch.empty(tuple(tensor_image.shape), dtype=torch.float32) #.repeat(len(self.info), 1)
-    print(data_image.shape)
-    for i in tqdm(range(len(self.info))):
-      nii_image = nib.load(self.directory+"/"+self.info["FILENAME"][i])
+    print(self.image_all[0,:].shape)
+    print(self.label_all[0,:].shape)
 
   def __len__(self):
     return len(self.info)
 
   def __getitem__(self, idx):
-    # fetch the image
-    nii_image = nib.load(self.directory+"/"+self.info["FILENAME"][idx])
-    tensor_image = torch.unsqueeze(torch.tensor(nii_image.get_fdata(), dtype=torch.float32),0)
-
-    # convert age labels from a single value to a distribution and 
-    # add with a small value (1e-16) to prevent log(0) problem
-    age = self.info["AGE"][idx]
-    # NAN bug sometimes
-    y, _ = num2vect(age, self.bin_range, 1, 1)
-    assert not np.isnan(y).any(), f"y contains NaN values with age {age}"
-    y += 1e-16
-    tensor_label = torch.tensor(y, dtype=torch.float32)
-
-    return tensor_image, tensor_label
+    return self.image_all[idx,:], self.label_all[idx,:]
 
 if __name__ == "__main__":
   bin_range   = [21,85]
