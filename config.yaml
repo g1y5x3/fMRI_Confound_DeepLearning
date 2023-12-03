@@ -12,10 +12,10 @@ parameters:
   num_epochs:
     value: 200
   lr:
-    values: [0.01, 0.005, 0.001, 0.0005, 0.0001]
+    values: [0.1, 0.01]
   wd:
-    value: 0.001
+    value: [0.001, 0.002, 0.003]
   step_size:
-    value: 10
+    values: [10, 20, 40]
   gamma:
-    value: 0.7
+    value: [0.6, 0.7, 0.8]
