@@ -10,4 +10,5 @@ RUN apt-get update && \
     pip install torchinfo && \
     pip install tqdm && \
     pip install numpy &&\
-    pip install nibabel
+    pip install nibabel &&\
+    pip install pyyaml
