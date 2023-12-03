@@ -1,6 +1,7 @@
 import os
-import argparse
+import yaml
 import wandb
+import argparse
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
@@ -15,6 +16,9 @@ from imageloader import IXIDataset
 WANDB = os.getenv("WANDB", False)
 
 def train(config):
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+  print(config) 
 
   # TODO: Test with other range that does not produce a x64 output
   bin_range   = [21,85]
@@ -110,7 +114,7 @@ def train(config):
   return loss_kl_test, MAE_age_test
 
 if __name__ == "__main__":
-  
+
   parser = argparse.ArgumentParser(description="Example:")
   parser.add_argument("--batch_size",  type=int,   default=8,    help="batch size")
   parser.add_argument("--num_workers", type=int,   default=2,    help="number of workers")
@@ -120,17 +124,14 @@ if __name__ == "__main__":
   parser.add_argument("--step_size",   type=int,   default=30,   help="step size")
   parser.add_argument("--gamma",       type=float, default=0.3,  help="gamma")
   args = parser.parse_args()
-  
   config = vars(args)
-  print(config)
-  
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-  
+
   if WANDB:
     wandb.login()
+    # TODO need to pass project/group without using argparse
     run = wandb.init(
-      project = "Confounding in fMRI Deep Learning",
-      group   = "Debug",
+      project = "Confounding-in-fMRI-Deep-Learning-Test",
+      group   = "Sweep-Debug",
       config  = config
     )
   
