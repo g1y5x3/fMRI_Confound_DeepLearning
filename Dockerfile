@@ -12,3 +12,5 @@ RUN apt-get update && \
     pip install numpy &&\
     pip install nibabel &&\
     pip install pyyaml
+
+ADD data /workspace/data
