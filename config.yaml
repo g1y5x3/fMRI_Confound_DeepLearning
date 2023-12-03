@@ -14,8 +14,8 @@ parameters:
   lr:
     values: [0.1, 0.01]
   wd:
-    value: [0.001, 0.002, 0.003]
+    values: [0.001, 0.002, 0.003]
   step_size:
     values: [10, 20, 40]
   gamma:
-    value: [0.6, 0.7, 0.8]
+    values: [0.6, 0.7, 0.8]
