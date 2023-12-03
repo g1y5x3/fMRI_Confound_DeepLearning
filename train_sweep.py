@@ -12,5 +12,5 @@ if __name__ == "__main__":
   
   run = wandb.init(config = config)
   
-  train(wandb.config, 1, run)
+  train(wandb.config, run)
   
