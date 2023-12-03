@@ -15,7 +15,7 @@ from imageloader import IXIDataset
 
 WANDB = os.getenv("WANDB", False)
 
-def train(config):
+def train(config, log=None, run=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
   print(config) 
@@ -97,15 +97,15 @@ def train(config):
     scheduler.step()
   
     t.set_description(f"Training: train/loss_kl {loss_kl_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss_kl {loss_kl_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
-    if WANDB:
+    if log:
       wandb.log({"train/loss_kl": loss_kl_train,
                  "train/MAE_age": MAE_age_train,
                  "test/loss_kl":  loss_kl_test,
                  "test/MAE_age":  MAE_age_test,
                  })
   
-  torch.save(model.state_dict(), "model/model.pth")
-  if WANDB:
+  if log:
+    torch.save(model.state_dict(), "model/model.pth")
     artifact = wandb.Artifact("model", type="model")
     artifact.add_file("model/model.pth")
     run.log_artifact(artifact)
@@ -126,8 +126,10 @@ if __name__ == "__main__":
   args = parser.parse_args()
   config = vars(args)
 
+  log = None
+  run = None
   if WANDB:
-    wandb.login()
+    log = 1
     # TODO need to pass project/group without using argparse
     run = wandb.init(
       project = "Confounding-in-fMRI-Deep-Learning-Test",
@@ -135,5 +137,5 @@ if __name__ == "__main__":
       config  = config
     )
   
-  train(config)
+  train(config, log, run)
   
