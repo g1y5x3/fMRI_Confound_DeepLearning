@@ -27,9 +27,16 @@ def preprocess_split(data_dir, label_file):
   df["AGE"] = df["AGE"].round(2)
 
   # split into training and validation
-  df_Guys = df[df["SITE"]=="Guys"]
-  df_HH   = df[df["SITE"]=="HH"]
+  df_Guys     = df[df["SITE"]=="Guys"]
+  df_Guys_old = df_Guys[df_Guys["AGE"] >= 47]
+  print(f"Guys {len(df_Guys)}")
+  print(f"Guys old {len(df_Guys_old)}")
+  df_HH     = df[df["SITE"]=="HH"]
+  df_HH_old = df_HH[df_HH["AGE"] >= 47]
+  print(f"HH {len(df_HH)}")
+  print(f"HH old {len(df_HH_old)}")
   df_IOP  = df[df["SITE"]=="IOP"]
+  print(f"IOP {len(df_IOP)}")
 
   df_train = pd.DataFrame(columns=info.columns)
   df_test  = pd.DataFrame(columns=info.columns)
@@ -39,8 +46,8 @@ def preprocess_split(data_dir, label_file):
     df_train = pd.concat([df_train, train_df], ignore_index=True)
     df_test  = pd.concat([df_test, test_df], ignore_index=True)
 
-  df_train.to_csv(data_dir + "/IXI_train.csv", index=False)
-  df_test.to_csv(data_dir + "/IXI_test.csv", index=False)
+  # df_train.to_csv(data_dir + "/IXI_train.csv", index=False)
+  # df_test.to_csv(data_dir + "/IXI_test.csv", index=False)
 
 def num2vect(x, bin_range, bin_step, sigma):
     """
