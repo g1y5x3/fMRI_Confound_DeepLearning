@@ -41,3 +41,6 @@ def conditional_log_likelihood(x, z):
   sigma = np.repeat(np.std(resid), len(z))
   # X | Z = Z_i ~ N(mu[i], sig2[i])
   return np.array([norm.logpdf(x, loc=m, scale=sigma) for m in mu]).T
+
+def generate_X_CPT_MC(nstep, log_lik_mat, Pi, random_state=None):
+  pass
