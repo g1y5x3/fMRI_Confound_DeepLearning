@@ -25,10 +25,14 @@ def train(config, run=None):
   print("\nDataloader:")
   data_train = IXIDataset(data_dir="data", label_file="IXI_train.csv", bin_range=bin_range)
   data_test  = IXIDataset(data_dir="data", label_file="IXI_test.csv",  bin_range=bin_range)
-  dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
-  dataloader_test  = DataLoader(data_test,  batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=False)
   bin_center = data_train.bin_center.reshape([-1,1])
   bin_center = bin_center.to(device)
+
+  # based on the paper the training inputs are 
+  # 1) randomly shifted by 0, 1, or 2 voxels along every axis; 
+  # 2) has a probability of 50% to be mirrored about the sagittal plane
+  dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
+  dataloader_test  = DataLoader(data_test,  batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=False)
   
   x, y = next(iter(dataloader_train))
   print("\nTraining data summary:")
@@ -46,6 +50,13 @@ def train(config, run=None):
   print(f"\nModel Dtype: {next(model.parameters()).dtype}")
   summary(model, x.shape)
   # TODO load pretrained weights from https://github.com/ha-ha-ha-han/UKBiobank_deep_pretrain/raw/master/brain_age/run_20190719_00_epoch_best_mae.p
+  w_pretrained = torch.load("model/run_20190719_00_epoch_best_mae.p")
+  w_feature_extractor = {k: v for k, v in w_pretrained.items() if "module.classifier" not in k}
+  # for layer_name in model.state_dict().keys():
+    # print(layer_name)
+  # for layer_name in w_feature_extractor.keys():
+    # print(layer_name)
+  model.load_state_dict(w_feature_extractor, strict=False)
   model.to(device)
   
   criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
@@ -103,8 +114,9 @@ def train(config, run=None):
                  "test/MAE_age":  MAE_age_test,
                  })
   
+  # Save and upload the trained model 
+  torch.save(model.state_dict(), "model/model.pth")
   if run:
-    torch.save(model.state_dict(), "model/model.pth")
     artifact = wandb.Artifact("model", type="model")
     artifact.add_file("model/model.pth")
     run.log_artifact(artifact)
@@ -125,13 +137,15 @@ if __name__ == "__main__":
   args = parser.parse_args()
   config = vars(args)
 
-  run = None
   if WANDB:
     # TODO need to pass project/group without using argparse
     run = wandb.init(
       project = "Confounding-in-fMRI-Deep-Learning-Test",
+      name="inialized_w_pretrained_weights",
+      group="tests",
       config  = config
     )
+  else:
+    run = None
   
   train(config, run)
-  
