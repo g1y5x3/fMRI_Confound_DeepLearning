@@ -49,13 +49,9 @@ def train(config, run=None):
   model = SFCN(output_dim=y.shape[1])
   print(f"\nModel Dtype: {next(model.parameters()).dtype}")
   summary(model, x.shape)
-  # TODO load pretrained weights from https://github.com/ha-ha-ha-han/UKBiobank_deep_pretrain/raw/master/brain_age/run_20190719_00_epoch_best_mae.p
+  # load pretrained weights from https://github.com/ha-ha-ha-han/UKBiobank_deep_pretrain/raw/master/brain_age/run_20190719_00_epoch_best_mae.p
   w_pretrained = torch.load("model/run_20190719_00_epoch_best_mae.p")
   w_feature_extractor = {k: v for k, v in w_pretrained.items() if "module.classifier" not in k}
-  # for layer_name in model.state_dict().keys():
-    # print(layer_name)
-  # for layer_name in w_feature_extractor.keys():
-    # print(layer_name)
   model.load_state_dict(w_feature_extractor, strict=False)
   model.to(device)
   

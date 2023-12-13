@@ -22,6 +22,8 @@ class IXIDataset(Dataset):
 
     # Pre-load the images and labels (if RAM is allowing)
     nii = nib.load(self.directory+"/"+self.info["FILENAME"][0])
+    voxel_size = nii.header.get_zooms()
+    print(f"Voxel Size: {voxel_size}")
     image = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
     self.image_all = torch.empty((len(self.info),) + tuple(image.shape), dtype=torch.float32)
 

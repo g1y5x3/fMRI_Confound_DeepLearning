@@ -30,6 +30,7 @@ class SFCN(nn.Module):
     if dropout: self.classifier.add_module('dropout', nn.Dropout(0.5))
     i = n_layer
     # TODO calculate or ask user to provide the dim size of handcoding it
+    # otherwise this would have to change depends on the input image size
     in_channel = channel_number[-1]*2*2*2
     out_channel = output_dim
     self.classifier.add_module(f"fc_{i}", nn.Linear(in_channel, out_channel))
