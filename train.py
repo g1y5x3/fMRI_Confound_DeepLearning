@@ -26,7 +26,6 @@ def train(config, run=None):
   data_train = IXIDataset(data_dir="data", label_file="IXI_train.csv", bin_range=bin_range)
   data_test  = IXIDataset(data_dir="data", label_file="IXI_test.csv",  bin_range=bin_range)
   bin_center = data_train.bin_center.reshape([-1,1])
-  bin_center = bin_center.to(device)
 
   # based on the paper the training inputs are 
   # 1) randomly shifted by 0, 1, or 2 voxels along every axis; 
@@ -58,21 +57,23 @@ def train(config, run=None):
   criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
   optimizer = optim.SGD(model.parameters(), lr=config["lr"], weight_decay=config["wd"])
   scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=config["step_size"], gamma=config["gamma"])
+  scaler = torch.cuda.amp.GradScaler(enabled=True)
   
   t = trange(config["num_epochs"], desc="\nTraining", leave=True)
+  # bin_center = bin_center.to(device)
   for epoch in t:
     loss_kl_train = 0.0
     MAE_age_train = 0.0
     for images, labels in dataloader_train:
-      optimizer.zero_grad()
-      x, y = images.to(device), labels.to(device)
-      output = model(x)
-      loss = criterion(output.log(), y.log())
+      with torch.autocast(device_type=device, dtype=torch.float16, enabled=True):
+        output = model(images)
+        loss = criterion(output.log(), labels.log())
       loss.backward()
       optimizer.step()
+      optimizer.zero_grad()
   
       with torch.no_grad():
-        age_target = y @ bin_center
+        age_target = labels @ bin_center
         age_pred   = output @ bin_center
         MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
