@@ -16,6 +16,7 @@ WANDB = os.getenv("WANDB", False)
 
 def train(config, run=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  # torch.set_default_device(device)
 
   print(config) 
 
@@ -33,26 +34,27 @@ def train(config, run=None):
   dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
   dataloader_test  = DataLoader(data_test,  batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=False)
   
-  x, y = next(iter(dataloader_train))
-  print("\nTraining data summary:")
-  print(f"Total data: {len(data_train)}")
-  print(f"Input {x.shape}")
-  print(f"Label {y.shape}")
+  # x, y = next(iter(dataloader_train))
+  # print("\nTraining data summary:")
+  # print(f"Total data: {len(data_train)}")
+  # print(f"Input {x.shape}")
+  # print(f"Label {y.shape}")
+  # 
+  # x, y = next(iter(dataloader_test))
+  # print("\nTesting data summary:")
+  # print(f"Total data: {len(data_test)}")
+  # print(f"Input {x.shape}")
+  # print(f"Label {y.shape}")
   
-  x, y = next(iter(dataloader_test))
-  print("\nTesting data summary:")
-  print(f"Total data: {len(data_test)}")
-  print(f"Input {x.shape}")
-  print(f"Label {y.shape}")
-  
-  model = SFCN(output_dim=y.shape[1])
+  model = SFCN(output_dim=64)
   print(f"\nModel Dtype: {next(model.parameters()).dtype}")
-  summary(model, x.shape)
+  # summary(model, x.shape)
   # load pretrained weights from https://github.com/ha-ha-ha-han/UKBiobank_deep_pretrain/raw/master/brain_age/run_20190719_00_epoch_best_mae.p
   w_pretrained = torch.load("model/run_20190719_00_epoch_best_mae.p")
   w_feature_extractor = {k: v for k, v in w_pretrained.items() if "module.classifier" not in k}
   model.load_state_dict(w_feature_extractor, strict=False)
   model.to(device)
+  # model.half()
   
   criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
   optimizer = optim.SGD(model.parameters(), lr=config["lr"], weight_decay=config["wd"])
@@ -69,8 +71,9 @@ def train(config, run=None):
       with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=True):
         output = model(images)
         loss = criterion(output.log(), labels.log())
-      loss.backward()
-      optimizer.step()
+      scaler.scale(loss).backward()
+      scaler.step(optimizer)
+      scaler.update()
       optimizer.zero_grad()
   
       with torch.no_grad():
@@ -92,15 +95,15 @@ def train(config, run=None):
         output = model(x)
         loss = criterion(output.log(), y.log())
   
-        age_target = y @ bin_center
-        age_pred   = output @ bin_center
-        MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
+        # age_target = y @ bin_center
+        # age_pred   = output @ bin_center
+        # MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
         loss_kl_test += loss.item()
-        MAE_age_test += MAE_age.item()
+        # MAE_age_test += MAE_age.item()
   
     loss_kl_test = loss_kl_test / len(dataloader_test)
-    MAE_age_test = MAE_age_test / len(dataloader_test)
+    # MAE_age_test = MAE_age_test / len(dataloader_test)
   
     scheduler.step()
   

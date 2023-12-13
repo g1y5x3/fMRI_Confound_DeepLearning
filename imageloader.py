@@ -24,24 +24,24 @@ class IXIDataset(Dataset):
     nii = nib.load(self.directory+"/"+self.info["FILENAME"][0])
     voxel_size = nii.header.get_zooms()
     print(f"Voxel Size: {voxel_size}")
-    image = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float16),0)
-    self.image_all = torch.empty((len(self.info),) + tuple(image.shape), dtype=torch.float16)
+    image = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
+    self.image_all = torch.empty((len(self.info),) + tuple(image.shape), dtype=torch.float32)
 
     age = np.array([71.3])
     y, bc = num2vect(age, self.bin_range, 1, 1)
-    label = torch.tensor(y, dtype=torch.float16)
-    self.label_all = torch.empty((len(self.info),) + tuple(label.shape)[1:], dtype=torch.float16)
+    label = torch.tensor(y, dtype=torch.float32)
+    self.label_all = torch.empty((len(self.info),) + tuple(label.shape)[1:], dtype=torch.float32)
 
     for i in tqdm(range(len(self.info)), desc="Loading Data"):
       nii = nib.load(self.directory+"/"+self.info["FILENAME"][i])
-      self.image_all[i,:] = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float16),0)
+      self.image_all[i,:] = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
 
       age = self.info["AGE"][i]
       y, _ = num2vect(age, self.bin_range, 1, 1)
       y += 1e-16
-      self.label_all[i,:] = torch.tensor(y, dtype=torch.float16)
+      self.label_all[i,:] = torch.tensor(y, dtype=torch.float32)
 
-    self.bin_center = torch.tensor(bc, dtype=torch.float16)
+    self.bin_center = torch.tensor(bc, dtype=torch.float32)
     print(self.image_all[0,:].shape)
     print(self.label_all[0,:].shape)
 
