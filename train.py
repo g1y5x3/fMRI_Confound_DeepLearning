@@ -65,7 +65,8 @@ def train(config, run=None):
     loss_kl_train = 0.0
     MAE_age_train = 0.0
     for images, labels in dataloader_train:
-      with torch.autocast(device_type=device, dtype=torch.float16, enabled=True):
+      images, labels = images.to(device), labels.to(device)
+      with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=True):
         output = model(images)
         loss = criterion(output.log(), labels.log())
       loss.backward()
@@ -73,15 +74,15 @@ def train(config, run=None):
       optimizer.zero_grad()
   
       with torch.no_grad():
-        age_target = labels @ bin_center
-        age_pred   = output @ bin_center
-        MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
+        # age_target = labels @ bin_center
+        # age_pred   = output @ bin_center
+        # MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
         loss_kl_train += loss.item()
-        MAE_age_train += MAE_age.item()
+        # MAE_age_train += MAE_age.item()
   
     loss_kl_train = loss_kl_train / len(dataloader_train)
-    MAE_age_train = MAE_age_train / len(dataloader_train)
+    # MAE_age_train = MAE_age_train / len(dataloader_train)
   
     with torch.no_grad():
       loss_kl_test = 0.0
