@@ -52,24 +52,28 @@ def train(config, run=None):
   w_pretrained = torch.load("model/run_20190719_00_epoch_best_mae.p")
   w_feature_extractor = {k: v for k, v in w_pretrained.items() if "module.classifier" not in k}
   model.load_state_dict(w_feature_extractor, strict=False)
-  model.to(device)
   
   criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
   optimizer = optim.SGD(model.parameters(), lr=config["lr"], weight_decay=config["wd"])
   scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=config["step_size"], gamma=config["gamma"])
   scaler = torch.cuda.amp.GradScaler(enabled=True)
   
+  # main training loop
+  model.to(device)
+  bin_center = bin_center.to(device)
+
   t = trange(config["num_epochs"], desc="\nTraining", leave=True)
-  # bin_center = bin_center.to(device)
   for epoch in t:
     loss_kl_train = 0.0
     MAE_age_train = 0.0
     for images, labels in dataloader_train:
-      with torch.autocast(device_type=device, dtype=torch.float16, enabled=True):
+      images, labels = images.to(device), labels.to(device)
+      with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=True):
         output = model(images)
         loss = criterion(output.log(), labels.log())
-      loss.backward()
-      optimizer.step()
+      scaler.scale(loss).backward()
+      scaler.step(optimizer)
+      scaler.update()
       optimizer.zero_grad()
   
       with torch.no_grad():
