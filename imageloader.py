@@ -11,7 +11,7 @@ class IXIDataset(Dataset):
   def __init__(self, data_dir, label_file, bin_range=None):
     print(f"Loading file: {label_file}")
     self.directory = data_dir
-    self.info = pd.read_csv(data_dir+"/"+label_file)
+    self.info = pd.read_csv("data/"+label_file)
     if not bin_range:
       self.bin_range = [math.floor(self.info['AGE'].min()), math.ceil(self.info['AGE'].max())]
       print(f"Age min {self.info['AGE'].min()}, Age max {self.info['AGE'].max()}")
@@ -34,6 +34,7 @@ class IXIDataset(Dataset):
 
     for i in tqdm(range(len(self.info)), desc="Loading Data"):
       nii = nib.load(self.directory+"/"+self.info["FILENAME"][i])
+      # self.image_all[i,:] = torch.tensor(nii.get_fdata(), dtype=torch.float32)
       self.image_all[i,:] = torch.unsqueeze(torch.tensor(nii.get_fdata(), dtype=torch.float32),0)
 
       age = self.info["AGE"][i]
@@ -42,8 +43,12 @@ class IXIDataset(Dataset):
       self.label_all[i,:] = torch.tensor(y, dtype=torch.float32)
 
     self.bin_center = torch.tensor(bc, dtype=torch.float32)
-    print(self.image_all[0,:].shape)
-    print(self.label_all[0,:].shape)
+    self.image_mean = self.image_all.mean(dim=[0,2,3,4])
+    self.image_std  = self.image_all.std(dim=[0,2,3,4])
+    print(f"Image Dim {self.image_all[0,:].shape}")
+    print(f"Label Dim {self.label_all[0,:].shape}")
+    print(f"Mean: {self.image_mean}")
+    print(f"Std: {self.image_std}")
 
   def __len__(self):
     return len(self.info)
@@ -53,4 +58,4 @@ class IXIDataset(Dataset):
 
 if __name__ == "__main__":
   bin_range   = [21,85]
-  data_train = IXIDataset(data_dir="data", label_file="IXI_train.csv", bin_range=bin_range)
+  data_train = IXIDataset(data_dir="data/IXI_4x4x4", label_file="IXI_train.csv", bin_range=bin_range)
