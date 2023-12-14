@@ -14,14 +14,12 @@ class CenterRandomShift(object):
     self.shift = randshift
 
   def __call__(self, image):
-    print(image.shape)
     image_shape = torch.tensor(image.shape)
     center = image_shape // 2
     sub_shape = (image_shape // 8) * 8
     if self.shift:
       shift = torch.randint(-2,3,size=(3,))
       center = center + shift
-    print(center)
     start = center - sub_shape // 2
     end = start + sub_shape
     return image[start[0]:end[0], start[1]:end[1], start[2]:end[2]]
@@ -86,6 +84,7 @@ class IXIDataset(Dataset):
     if self.transform:
       for tsfrm in self.transform:
         image = tsfrm(image)
+    image = torch.unsqueeze(image, 0)
     return image, label
 
 if __name__ == "__main__":

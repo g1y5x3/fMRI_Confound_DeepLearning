@@ -10,9 +10,11 @@ from torch.utils.data import DataLoader
 from torchinfo import summary
 from tqdm import trange
 from sfcn import SFCN
-from imageloader import IXIDataset
+from imageloader import IXIDataset, CenterRandomShift, RandomMirror
 
 WANDB = os.getenv("WANDB", False)
+GROUP = os.getenv("GROUP", "tests")
+NAME  = os.getenv("NAME" , "test")
 
 def train(config, run=None):
   device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,13 +25,13 @@ def train(config, run=None):
   bin_range   = [21,85]
 
   print("\nDataloader:")
-  data_train = IXIDataset(data_dir="data", label_file="IXI_train.csv", bin_range=bin_range)
-  data_test  = IXIDataset(data_dir="data", label_file="IXI_test.csv",  bin_range=bin_range)
-  bin_center = data_train.bin_center.reshape([-1,1])
-
   # based on the paper the training inputs are 
   # 1) randomly shifted by 0, 1, or 2 voxels along every axis; 
   # 2) has a probability of 50% to be mirrored about the sagittal plane
+  data_train = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_train.csv", bin_range=bin_range, transform=[CenterRandomShift(randshift=True), RandomMirror()])
+  data_test  = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_test.csv",  bin_range=bin_range, transform=[CenterRandomShift(randshift=False)])
+  bin_center = data_train.bin_center.reshape([-1,1])
+
   dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
   dataloader_test  = DataLoader(data_test,  batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=False)
   
