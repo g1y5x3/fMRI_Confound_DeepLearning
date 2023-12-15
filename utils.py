@@ -3,14 +3,12 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-# original label file contains additional entries from subjects not appeared in the fMRI images
-def preprocess_split(data_dir, label_file):
-  info = pd.read_excel(data_dir+"/"+label_file)
+def filter_IXIDataset(info, data_dir):
   df = pd.DataFrame(columns=info.columns)
   dir_list = os.listdir(data_dir)
   for i in dir_list:
     if "nii" in i:
-      df_tmp = info[info["IXI_ID"]==int(i[7:10])].copy()
+      df_tmp = info[info["IXI_ID"]==int(i[3:6])].copy()
       if not df_tmp.empty and not np.isnan(df_tmp["AGE"]).any():
         # for some reason there's duplicate from the original csv
         df_tmp = df_tmp.drop_duplicates(subset=["IXI_ID"])
@@ -25,29 +23,46 @@ def preprocess_split(data_dir, label_file):
   df = df.sort_values(by="IXI_ID", ascending=True)
   df = df.reset_index(drop=True)
   df["AGE"] = df["AGE"].round(2)
+  return df
 
+# original label file contains additional entries from subjects not appeared in the fMRI images
+def preprocess_split(data_dir, label_file):
+  info = pd.read_excel(data_dir+"/"+label_file)
+  df = filter_IXIDataset(info, data_dir)
+  
   # split into training and validation
   df_Guys     = df[df["SITE"]=="Guys"]
   df_Guys_old = df_Guys[df_Guys["AGE"] >= 47]
-  print(f"Guys {len(df_Guys)}")
-  print(f"Guys old {len(df_Guys_old)}")
   df_HH     = df[df["SITE"]=="HH"]
   df_HH_old = df_HH[df_HH["AGE"] >= 47]
-  print(f"HH {len(df_HH)}")
-  print(f"HH old {len(df_HH_old)}")
   df_IOP  = df[df["SITE"]=="IOP"]
-  print(f"IOP {len(df_IOP)}")
 
-  df_train = pd.DataFrame(columns=info.columns)
-  df_test  = pd.DataFrame(columns=info.columns)
+  df_train = pd.DataFrame(columns=df.columns)
+  df_test  = pd.DataFrame(columns=df.columns)
   for df in [df_Guys, df_HH, df_IOP]:
-    train_df = df.sample(frac=0.9, random_state=123)
-    test_df  = df.drop(train_df.index)
-    df_train = pd.concat([df_train, train_df], ignore_index=True)
-    df_test  = pd.concat([df_test, test_df], ignore_index=True)
+    df_train_tmp = df.sample(frac=0.9, random_state=123)
+    df_test_tmp  = df.drop(df_train_tmp.index)
+    df_train = pd.concat([df_train, df_train_tmp], ignore_index=True)
+    df_test  = pd.concat([df_test, df_test_tmp], ignore_index=True)
+  df_train.to_csv(data_dir + "/IXI_all_train.csv", index=False)
+  df_test.to_csv(data_dir + "/IXI_all_test.csv", index=False)
 
-  # df_train.to_csv(data_dir + "/IXI_train.csv", index=False)
-  # df_test.to_csv(data_dir + "/IXI_test.csv", index=False)
+  df_train = pd.DataFrame(columns=df.columns)
+  df_test  = pd.DataFrame(columns=df.columns)
+  for df in [df_Guys_old, df_HH_old]:
+    df_train_tmp = df.sample(frac=0.9, random_state=123)
+    df_test_tmp  = df.drop(df_train_tmp.index)
+    df_train = pd.concat([df_train, df_train_tmp], ignore_index=True)
+    df_test  = pd.concat([df_test, df_test_tmp], ignore_index=True)
+  df_train.to_csv(data_dir + "/IXI_unbiased_train.csv", index=False)
+  df_test.to_csv(data_dir + "/IXI_unbiased_test.csv", index=False)
+
+  # df_unbiased = pd.concat([df_Guys_old, df_HH_old], ignore_index=True)
+  # for df in [df_Guys_old, df_HH_old]
+  # df_train = df_unbiased.sample(frac=0.9, random_state=123)
+  # df_test  = df_unbiased.drop(df_train.index)
+  # df_train.to_csv(data_dir + "/IXI_unbiased_train.csv", index=False)
+  # df_test.to_csv(data_dir + "/IXI_unbiased_test.csv", index=False)
 
 def num2vect(x, bin_range, bin_step, sigma):
     """
@@ -93,5 +108,5 @@ def num2vect(x, bin_range, bin_step, sigma):
         return v, bin_centers
 
 if __name__ == "__main__":
-  preprocess_split(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset/preprocessed", label_file="IXI.xls")
+  preprocess_split(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset", label_file="IXI.xls")
 
