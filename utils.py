@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
+# original label file contains duplicated entries and not all subjects from the excel
+# have a corresponding image scan
 def filter_IXIDataset(info, data_dir):
   df = pd.DataFrame(columns=info.columns)
   dir_list = os.listdir(data_dir)
@@ -25,17 +27,21 @@ def filter_IXIDataset(info, data_dir):
   df["AGE"] = df["AGE"].round(2)
   return df
 
-# original label file contains additional entries from subjects not appeared in the fMRI images
 def preprocess_split(data_dir, label_file):
   info = pd.read_excel("data/"+label_file)
   df = filter_IXIDataset(info, data_dir)
   
   # split into training and validation
-  df_Guys     = df[df["SITE"]=="Guys"]
-  df_Guys_old = df_Guys[df_Guys["AGE"] >= 47]
-  df_HH     = df[df["SITE"]=="HH"]
-  df_HH_old = df_HH[df_HH["AGE"] >= 47]
+  df_Guys = df[df["SITE"]=="Guys"]
+  df_HH   = df[df["SITE"]=="HH"]
   df_IOP  = df[df["SITE"]=="IOP"]
+
+  # This is based on "Since the IXI data contains a mixture of young and old participants, we restrict
+  # the subjects to be those above the age of 47."
+  # Predictive modelling using neuroimaging data in the presence of confounds
+  # Anil Rao, Joao M. Monteiro , Janaina Mourao-Miranda , Alzheimer's Disease Initiative
+  df_Guys_old = df_Guys[df_Guys["AGE"] >= 47]
+  df_HH_old = df_HH[df_HH["AGE"] >= 47]
 
   df_train = pd.DataFrame(columns=df.columns)
   df_test  = pd.DataFrame(columns=df.columns)
