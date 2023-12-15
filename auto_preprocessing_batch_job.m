@@ -2,6 +2,7 @@
 % FolderInfo = dir('/home/iris/yg5d6/Workspace/IXI_dataset/');
 load('filelist.mat')
 % 583
+% TODO this can be parallelized
 for i = 3 : 583
     filename = sprintf('%s/%s\n', FolderInfo(i).folder, FolderInfo(i).name);
 
@@ -43,6 +44,7 @@ for i = 3 : 583
     matlabbatch{1}.spm.spatial.preproc.warp.vox = NaN;
     matlabbatch{1}.spm.spatial.preproc.warp.bb = [NaN NaN NaN
                                                   NaN NaN NaN];
+    % https://www.fil.ion.ucl.ac.uk/spm/docs/tutorials/fmri/block/preprocessing/normalisation/
     matlabbatch{2}.spm.spatial.normalise.write.subj.def(1) = cfg_dep('Segment: Forward Deformations', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','fordef', '()',{':'}));
     matlabbatch{2}.spm.spatial.normalise.write.subj.resample(1) = cfg_dep('Segment: c1 Images', substruct('.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('.','tiss', '()',{1}, '.','c', '()',{':'}));
     matlabbatch{2}.spm.spatial.normalise.write.woptions.bb = [-78 -112 -70
@@ -50,13 +52,14 @@ for i = 3 : 583
     matlabbatch{2}.spm.spatial.normalise.write.woptions.vox = [2 2 2];
     matlabbatch{2}.spm.spatial.normalise.write.woptions.interp = 4;
     matlabbatch{2}.spm.spatial.normalise.write.woptions.prefix = 'w';
+    % https://www.fil.ion.ucl.ac.uk/spm/docs/tutorials/fmri/block/preprocessing/smoothing/
     matlabbatch{3}.spm.spatial.smooth.data(1) = cfg_dep('Normalise: Write: Normalised Images (Subj 1)', substruct('.','val', '{}',{2}, '.','val', '{}',{1}, '.','val', '{}',{1}, '.','val', '{}',{1}), substruct('()',{1}, '.','files'));
     matlabbatch{3}.spm.spatial.smooth.fwhm = [4 4 4];
     matlabbatch{3}.spm.spatial.smooth.dtype = 0;
     matlabbatch{3}.spm.spatial.smooth.im = 0;
     matlabbatch{3}.spm.spatial.smooth.prefix = 's';
     
-%     save preprocessing_batch matlabbatch % save the setup into a matfile called preprocessing_batch.mat
+    % save preprocessing_batch matlabbatch % save the setup into a matfile called preprocessing_batch.mat
     spm_jobman('run',matlabbatch) % execute the batch
     clear matlabbatch % clear matlabbatch    
     
