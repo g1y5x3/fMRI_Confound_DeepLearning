@@ -28,8 +28,8 @@ def train(config, run=None):
   # based on the paper the training inputs are 
   # 1) randomly shifted by 0, 1, or 2 voxels along every axis; 
   # 2) has a probability of 50% to be mirrored about the sagittal plane
-  data_train = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_train.csv", bin_range=bin_range, transform=[CenterRandomShift(randshift=True), RandomMirror()])
-  data_test  = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_test.csv",  bin_range=bin_range, transform=[CenterRandomShift(randshift=False)])
+  data_train = IXIDataset(data_dir="data/IXI_4x4x4", label_file="IXI_train.csv", bin_range=bin_range, transform=[CenterRandomShift(randshift=True), RandomMirror()])
+  data_test  = IXIDataset(data_dir="data/IXI_4x4x4", label_file="IXI_test.csv",  bin_range=bin_range, transform=[CenterRandomShift(randshift=False)])
   bin_center = data_train.bin_center.reshape([-1,1])
 
   dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
@@ -55,7 +55,8 @@ def train(config, run=None):
   w_feature_extractor = {k: v for k, v in w_pretrained.items() if "module.classifier" not in k}
   model.load_state_dict(w_feature_extractor, strict=False)
   
-  criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
+  # criterion = nn.KLDivLoss(reduction="batchmean", log_target=True)
+  criterion = nn.CrossEntropyLoss(reduction="mean")
   optimizer = optim.SGD(model.parameters(), lr=config["lr"], weight_decay=config["wd"])
   scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=config["step_size"], gamma=config["gamma"])
   scaler = torch.cuda.amp.GradScaler(enabled=True)
@@ -66,13 +67,14 @@ def train(config, run=None):
 
   t = trange(config["num_epochs"], desc="\nTraining", leave=True)
   for epoch in t:
-    loss_kl_train = 0.0
+    loss_train = 0.0
     MAE_age_train = 0.0
     for images, labels in dataloader_train:
       images, labels = images.to(device), labels.to(device)
       with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=True):
         output = model(images)
-        loss = criterion(output.log(), labels.log())
+        # loss = criterion(output.log(), labels.log())
+        loss = criterion(output, labels)
       scaler.scale(loss).backward()
       scaler.step(optimizer)
       scaler.update()
@@ -83,37 +85,37 @@ def train(config, run=None):
         age_pred   = output @ bin_center
         MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
-        loss_kl_train += loss.item()
+        loss_train += loss.item()
         MAE_age_train += MAE_age.item()
   
-    loss_kl_train = loss_kl_train / len(dataloader_train)
+    loss_train = loss_train / len(dataloader_train)
     MAE_age_train = MAE_age_train / len(dataloader_train)
   
     with torch.no_grad():
-      loss_kl_test = 0.0
+      loss_test = 0.0
       MAE_age_test = 0.0
       for images, labels in dataloader_test:
         x, y = images.to(device), labels.to(device)
         output = model(x)
-        loss = criterion(output.log(), y.log())
+        loss = criterion(output, y)
   
         age_target = y @ bin_center
         age_pred   = output @ bin_center
         MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
-        loss_kl_test += loss.item()
+        loss_test += loss.item()
         MAE_age_test += MAE_age.item()
   
-    loss_kl_test = loss_kl_test / len(dataloader_test)
+    loss_test = loss_test / len(dataloader_test)
     MAE_age_test = MAE_age_test / len(dataloader_test)
   
     scheduler.step()
   
-    t.set_description(f"Training: train/loss_kl {loss_kl_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss_kl {loss_kl_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
+    t.set_description(f"Training: train/loss {loss_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss {loss_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
     if run:
-      wandb.log({"train/loss_kl": loss_kl_train,
+      wandb.log({"train/loss": loss_train,
                  "train/MAE_age": MAE_age_train,
-                 "test/loss_kl":  loss_kl_test,
+                 "test/loss":  loss_test,
                  "test/MAE_age":  MAE_age_test,
                  })
   
@@ -125,7 +127,7 @@ def train(config, run=None):
     run.log_artifact(artifact)
     run.finish()
 
-  return loss_kl_test, MAE_age_test
+  return loss_test, MAE_age_test
 
 if __name__ == "__main__":
 
