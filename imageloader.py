@@ -39,7 +39,7 @@ class IXIDataset(Dataset):
   def __init__(self, data_dir, label_file, bin_range=None, transform=None):
     print(f"Loading file: {label_file}")
     self.directory = data_dir
-    self.info = pd.read_csv("data/"+label_file)
+    self.info = pd.read_csv(data_dir+"/"+label_file)
     self.transform = transform
     if not bin_range:
       self.bin_range = [math.floor(self.info['AGE'].min()), math.ceil(self.info['AGE'].max())]

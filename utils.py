@@ -8,7 +8,7 @@ def filter_IXIDataset(info, data_dir):
   dir_list = os.listdir(data_dir)
   for i in dir_list:
     if "nii" in i:
-      df_tmp = info[info["IXI_ID"]==int(i[3:6])].copy()
+      df_tmp = info[info["IXI_ID"]==int(i[7:10])].copy()
       if not df_tmp.empty and not np.isnan(df_tmp["AGE"]).any():
         # for some reason there's duplicate from the original csv
         df_tmp = df_tmp.drop_duplicates(subset=["IXI_ID"])
@@ -27,7 +27,7 @@ def filter_IXIDataset(info, data_dir):
 
 # original label file contains additional entries from subjects not appeared in the fMRI images
 def preprocess_split(data_dir, label_file):
-  info = pd.read_excel(data_dir+"/"+label_file)
+  info = pd.read_excel("data/"+label_file)
   df = filter_IXIDataset(info, data_dir)
   
   # split into training and validation
@@ -56,13 +56,6 @@ def preprocess_split(data_dir, label_file):
     df_test  = pd.concat([df_test, df_test_tmp], ignore_index=True)
   df_train.to_csv(data_dir + "/IXI_unbiased_train.csv", index=False)
   df_test.to_csv(data_dir + "/IXI_unbiased_test.csv", index=False)
-
-  # df_unbiased = pd.concat([df_Guys_old, df_HH_old], ignore_index=True)
-  # for df in [df_Guys_old, df_HH_old]
-  # df_train = df_unbiased.sample(frac=0.9, random_state=123)
-  # df_test  = df_unbiased.drop(df_train.index)
-  # df_train.to_csv(data_dir + "/IXI_unbiased_train.csv", index=False)
-  # df_test.to_csv(data_dir + "/IXI_unbiased_test.csv", index=False)
 
 def num2vect(x, bin_range, bin_step, sigma):
     """
@@ -108,5 +101,6 @@ def num2vect(x, bin_range, bin_step, sigma):
         return v, bin_centers
 
 if __name__ == "__main__":
-  preprocess_split(data_dir="/home/iris/yg5d6/Workspace/IXI_dataset", label_file="IXI.xls")
+  preprocess_split(data_dir="data/IXI_4x4x4", label_file="IXI.xls")
+  preprocess_split(data_dir="data/IXI_10x10x10", label_file="IXI.xls")
 
