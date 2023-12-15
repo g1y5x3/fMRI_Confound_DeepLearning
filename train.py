@@ -28,8 +28,8 @@ def train(config, run=None):
   # based on the paper the training inputs are 
   # 1) randomly shifted by 0, 1, or 2 voxels along every axis; 
   # 2) has a probability of 50% to be mirrored about the sagittal plane
-  data_train = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_train.csv", bin_range=bin_range, transform=[CenterRandomShift(randshift=True), RandomMirror()])
-  data_test  = IXIDataset(data_dir="data/IXI_10x10x10", label_file="IXI_test.csv",  bin_range=bin_range, transform=[CenterRandomShift(randshift=False)])
+  data_train = IXIDataset(data_dir="data/IXI_4x4x4", label_file="IXI_train.csv", bin_range=bin_range, transform=[CenterRandomShift(randshift=True), RandomMirror()])
+  data_test  = IXIDataset(data_dir="data/IXI_4x4x4", label_file="IXI_test.csv",  bin_range=bin_range, transform=[CenterRandomShift(randshift=False)])
   bin_center = data_train.bin_center.reshape([-1,1])
 
   dataloader_train = DataLoader(data_train, batch_size=config["batch_size"], num_workers=config["num_workers"], pin_memory=True, shuffle=True)
@@ -61,6 +61,7 @@ def train(config, run=None):
   scaler = torch.cuda.amp.GradScaler(enabled=True)
   
   # main training loop
+  print(criterion)
   model.to(device)
   bin_center = bin_center.to(device)
 
