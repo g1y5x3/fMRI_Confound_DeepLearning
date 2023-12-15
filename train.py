@@ -143,7 +143,7 @@ if __name__ == "__main__":
   if WANDB:
     # TODO need to pass project/group without using argparse
     run = wandb.init(
-      project = "Confounding-in-fMRI-Deep-Learning-Test",
+      project = "Confounding-in-fMRI-Deep-Learning",
       name    = NAME,
       group   = GROUP,
       config  = config
