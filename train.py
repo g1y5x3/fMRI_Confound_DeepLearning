@@ -66,7 +66,7 @@ def train(config, run=None):
 
   t = trange(config["num_epochs"], desc="\nTraining", leave=True)
   for epoch in t:
-    loss_kl_train = 0.0
+    loss_train = 0.0
     MAE_age_train = 0.0
     for images, labels in dataloader_train:
       images, labels = images.to(device), labels.to(device)
@@ -83,14 +83,14 @@ def train(config, run=None):
         age_pred   = output @ bin_center
         MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
-        loss_kl_train += loss.item()
+        loss_train += loss.item()
         MAE_age_train += MAE_age.item()
   
-    loss_kl_train = loss_kl_train / len(dataloader_train)
+    loss_train = loss_train / len(dataloader_train)
     MAE_age_train = MAE_age_train / len(dataloader_train)
   
     with torch.no_grad():
-      loss_kl_test = 0.0
+      loss_test = 0.0
       MAE_age_test = 0.0
       for images, labels in dataloader_test:
         x, y = images.to(device), labels.to(device)
@@ -101,19 +101,19 @@ def train(config, run=None):
         age_pred   = output @ bin_center
         MAE_age = F.l1_loss(age_pred, age_target, reduction="mean")
   
-        loss_kl_test += loss.item()
+        loss_test += loss.item()
         MAE_age_test += MAE_age.item()
   
-    loss_kl_test = loss_kl_test / len(dataloader_test)
+    loss_test = loss_test / len(dataloader_test)
     MAE_age_test = MAE_age_test / len(dataloader_test)
   
     scheduler.step()
   
-    t.set_description(f"Training: train/loss_kl {loss_kl_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss_kl {loss_kl_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
+    t.set_description(f"Training: train/loss {loss_train:.2f}, train/MAE_age {MAE_age_train:.2f} test/loss {loss_test:.2f}, test/MAE_age {MAE_age_test:.2f}")
     if run:
-      wandb.log({"train/loss_kl": loss_kl_train,
+      wandb.log({"train/loss": loss_train,
                  "train/MAE_age": MAE_age_train,
-                 "test/loss_kl":  loss_kl_test,
+                 "test/loss":  loss_test,
                  "test/MAE_age":  MAE_age_test,
                  })
   
@@ -125,7 +125,7 @@ def train(config, run=None):
     run.log_artifact(artifact)
     run.finish()
 
-  return loss_kl_test, MAE_age_test
+  return loss_test, MAE_age_test
 
 if __name__ == "__main__":
 
