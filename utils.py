@@ -43,6 +43,7 @@ def preprocess_split(data_dir, label_file):
   df_Guys_old = df_Guys[df_Guys["AGE"] >= 47]
   df_HH_old = df_HH[df_HH["AGE"] >= 47]
 
+  df_all = pd.concat([df_Guys, df_HH, df_IOP], ignore_index=True)
   df_train = pd.DataFrame(columns=df.columns)
   df_test  = pd.DataFrame(columns=df.columns)
   for df in [df_Guys, df_HH, df_IOP]:
@@ -50,9 +51,11 @@ def preprocess_split(data_dir, label_file):
     df_test_tmp  = df.drop(df_train_tmp.index)
     df_train = pd.concat([df_train, df_train_tmp], ignore_index=True)
     df_test  = pd.concat([df_test, df_test_tmp], ignore_index=True)
+  df_all.to_csv(data_dir + "/IXI_all.csv", index=False)
   df_train.to_csv(data_dir + "/IXI_all_train.csv", index=False)
   df_test.to_csv(data_dir + "/IXI_all_test.csv", index=False)
 
+  df_unbiased = pd.concat([df_Guys_old, df_HH_old], ignore_index=True)
   df_train = pd.DataFrame(columns=df.columns)
   df_test  = pd.DataFrame(columns=df.columns)
   for df in [df_Guys_old, df_HH_old]:
@@ -60,6 +63,7 @@ def preprocess_split(data_dir, label_file):
     df_test_tmp  = df.drop(df_train_tmp.index)
     df_train = pd.concat([df_train, df_train_tmp], ignore_index=True)
     df_test  = pd.concat([df_test, df_test_tmp], ignore_index=True)
+  df_unbiased.to_csv(data_dir + "/IXI_unbiased.csv", index=False)
   df_train.to_csv(data_dir + "/IXI_unbiased_train.csv", index=False)
   df_test.to_csv(data_dir + "/IXI_unbiased_test.csv", index=False)
 
